@@ -1,0 +1,505 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pollinations AI Model Monitor</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --border: #e2e8f0;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        /* HEADER */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-main);
+        }
+
+        .header-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+        }
+
+        .last-updated {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            font-family: monospace;
+        }
+
+        .refresh-btn {
+            background-color: var(--text-main);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .refresh-btn:hover { background-color: #334155; transform: translateY(-1px); }
+        .refresh-btn:active { transform: translateY(0); }
+        .refresh-btn:disabled { background-color: var(--text-sub); cursor: wait; opacity: 0.8; }
+
+        /* CARDS & TABLES */
+        .section-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .section-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .endpoint-badge {
+            font-size: 0.75rem;
+            background: #e2e8f0;
+            padding: 4px 10px;
+            border-radius: 20px;
+            color: var(--text-sub);
+            font-family: monospace;
+            font-weight: 600;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th {
+            text-align: left;
+            padding: 16px 24px;
+            background-color: #ffffff;
+            color: var(--text-sub);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid var(--bg);
+        }
+
+        td {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background-color: #f8fafc; }
+
+        /* STATUS INDICATORS */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .status-success { background: #dcfce7; color: #15803d; }
+        .status-error { background: #fee2e2; color: #b91c1c; }
+        .status-loading { background: #f1f5f9; color: #475569; }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: currentColor;
+        }
+
+        .ping-value {
+            font-family: monospace;
+            font-weight: 600;
+            color: var(--text-sub);
+        }
+
+        .feature-tag {
+            display: inline-block;
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            margin-right: 4px;
+            margin-bottom: 2px;
+            font-weight: 500;
+        }
+
+        .desc-text { color: var(--text-sub); font-size: 0.85rem; margin-top: 2px; }
+        .model-name { font-weight: 700; color: var(--text-main); font-size: 0.95rem; }
+        
+        /* TEST BUTTON STYLES */
+        .test-btn {
+            background-color: #fff;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .test-btn:hover {
+            background-color: var(--bg);
+            border-color: var(--text-sub);
+        }
+        .test-btn:disabled {
+            opacity: 0.5;
+            cursor: progress;
+        }
+        
+        .test-result {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .test-ok { color: var(--success); }
+        .test-fail { color: var(--error); }
+        .test-warn { color: var(--warning); }
+
+        .loading-overlay {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-sub);
+            font-style: italic;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .header { flex-direction: column; gap: 15px; align-items: flex-start; }
+            .header-actions { align-items: flex-start; width: 100%; }
+            .refresh-btn { width: 100%; justify-content: center; }
+            th:nth-child(2), td:nth-child(2) { display: none; } /* Hide description */
+            td { padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <h1>
+            <span style="font-size: 1.2em;">📊</span> 
+            <div>
+                Monitor Status Pollinations
+                <div style="font-size: 0.8rem; font-weight: 500; color: var(--text-sub); margin-top: 4px;">Real-time Model Availability Checker</div>
+            </div>
+        </h1>
+        <div class="header-actions">
+            <button id="refreshBtn" class="refresh-btn" onclick="refreshAllData()">
+                <span>🔄</span> Perbarui Data
+            </button>
+            <span id="lastUpdated" class="last-updated"></span>
+        </div>
+    </div>
+
+    <!-- Info Box -->
+    <div style="background: #eff6ff; border: 1px solid #dbeafe; padding: 15px; border-radius: 12px; margin-bottom: 24px; color: #1e40af; font-size: 0.9rem;">
+        <strong>ℹ️ Info:</strong> Daftar di bawah menampilkan model yang terdaftar. Status "API List" adalah ketersediaan di daftar. 
+        Gunakan tombol <strong>"⚡ Tes"</strong> untuk memastikan server model benar-benar aktif (menghindari error 500/Unavailable).
+    </div>
+
+    <!-- Text Models Section -->
+    <div class="section-card">
+        <div class="section-header">
+            <span class="section-title">📝 Text Models</span>
+            <span class="endpoint-badge">/text/models</span>
+        </div>
+        <div class="table-container">
+            <table id="text-table">
+                <thead>
+                    <tr>
+                        <th width="15%">API List</th>
+                        <th width="20%">Nama Model</th>
+                        <th width="30%">Detail</th>
+                        <th width="10%">Ping</th>
+                        <th width="25%">Cek Fungsional</th>
+                    </tr>
+                </thead>
+                <tbody id="text-body">
+                    <tr><td colspan="5" class="loading-overlay">Menunggu pembaruan...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Image Models Section -->
+    <div class="section-card">
+        <div class="section-header">
+            <span class="section-title">🎨 Image Models</span>
+            <span class="endpoint-badge">/image/models</span>
+        </div>
+        <div class="table-container">
+            <table id="image-table">
+                <thead>
+                    <tr>
+                        <th width="15%">API List</th>
+                        <th width="20%">Nama Model</th>
+                        <th width="30%">Fitur & Modalitas</th>
+                        <th width="10%">Ping</th>
+                        <th width="25%">Cek Fungsional</th>
+                    </tr>
+                </thead>
+                <tbody id="image-body">
+                    <tr><td colspan="5" class="loading-overlay">Menunggu pembaruan...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function getPingClass(ms) {
+        if (ms < 300) return 'ping-value';
+        if (ms < 800) return 'ping-value';
+        return 'ping-value';
+    }
+
+    // Fungsi Tes Model Individu
+    async function checkModelHealth(modelName, type, btnId, resId) {
+        const btn = document.getElementById(btnId);
+        const res = document.getElementById(resId);
+        
+        btn.disabled = true;
+        btn.innerHTML = '⏳...';
+        res.innerHTML = '';
+        res.className = 'test-result';
+
+        try {
+            let url;
+            const startTime = performance.now();
+            
+            if (type === 'image') {
+                // Request gambar kecil (16x16) untuk menghemat bandwidth, tapi cukup untuk trigger backend
+                url = `https://image.pollinations.ai/prompt/test?model=${encodeURIComponent(modelName)}&width=32&height=32&nologo=true&seed=${Math.floor(Math.random()*1000)}`;
+            } else {
+                // Untuk teks, kita coba hit endpoint sederhana jika memungkinkan.
+                // Karena endpoint text OpenAI compatible kadang butuh POST, kita coba GET root/model check jika tersedia, 
+                // atau asumsikan 200 OK dari endpoint list sudah cukup, tapi di sini kita simulasikan 'active'
+                // Note: Text generation via GET di Pollinations tidak selalu standar. 
+                // Kita gunakan endpoint list sebagai proxy test untuk text jika tidak ada endpoint GET khusus.
+                // Namun untuk konsistensi UI, kita akan membiarkan user tahu ini "List Checked".
+                url = `https://text.pollinations.ai/`; // Base check
+            }
+
+            const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
+            const endTime = performance.now();
+            const duration = Math.round(endTime - startTime);
+
+            if (response.ok) {
+                res.innerHTML = `✅ Aktif (${duration}ms)`;
+                res.classList.add('test-ok');
+            } else {
+                // Jika error (misal 500 seperti kasus zimage)
+                res.innerHTML = `❌ Gagal (${response.status})`;
+                res.classList.add('test-fail');
+            }
+
+        } catch (error) {
+            console.error(error);
+            res.innerHTML = `❌ Error`;
+            res.classList.add('test-fail');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '⚡ Tes';
+        }
+    }
+
+    async function fetchAndRender(type, url, tableBodyId) {
+        const tbody = document.getElementById(tableBodyId);
+        tbody.style.opacity = '0.5';
+        
+        const startTime = performance.now();
+        let ping = 0;
+        let isSuccess = false;
+        let models = [];
+        let errorMsg = '';
+
+        try {
+            const response = await fetch(url, { cache: "no-store" });
+            const endTime = performance.now();
+            ping = Math.round(endTime - startTime);
+            isSuccess = response.ok;
+            if (!isSuccess) throw new Error(`HTTP ${response.status}`);
+            models = await response.json();
+        } catch (error) {
+            console.error(error);
+            isSuccess = false;
+            errorMsg = error.message;
+        }
+
+        tbody.innerHTML = '';
+        tbody.style.opacity = '1';
+
+        if (!isSuccess) {
+            tbody.innerHTML = `
+                <tr>
+                    <td><span class="status-badge status-error"><span class="dot"></span> Down</span></td>
+                    <td colspan="4" style="color:var(--error);">Gagal mengambil daftar: ${errorMsg}</td>
+                </tr>`;
+            return;
+        }
+
+        if (models.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;">Tidak ada model ditemukan.</td></tr>';
+            return;
+        }
+
+        models.forEach((model, index) => {
+            const row = document.createElement('tr');
+            const uniqueId = `${type}-${index}`;
+            const btnId = `btn-${uniqueId}`;
+            const resId = `res-${uniqueId}`;
+
+            // Image vs Text Layout
+            let detailsHtml = '';
+            if (type === 'text') {
+                if (model.reasoning) detailsHtml += `<span class="feature-tag">Reasoning</span>`;
+                if (model.tools) detailsHtml += `<span class="feature-tag">Tools</span>`;
+                detailsHtml += `<div class="desc-text">${model.description || '-'}</div>`;
+            } else {
+                const inputs = model.input_modalities ? model.input_modalities.join(', ') : '';
+                detailsHtml += `<div class="desc-text">${model.description || ''}</div>`;
+                if(inputs) detailsHtml += `<small style="color:#9ca3af">In: ${inputs}</small>`;
+            }
+
+            // Test Button Logic
+            let testButtonHtml = '';
+            if (type === 'image') {
+                testButtonHtml = `
+                    <button id="${btnId}" class="test-btn" onclick="checkModelHealth('${model.name}', 'image', '${btnId}', '${resId}')">
+                        ⚡ Tes
+                    </button>
+                    <span id="${resId}" class="test-result"></span>
+                `;
+            } else {
+                 testButtonHtml = `<span style="color:#cbd5e1; font-size:0.8rem;">Lihat Status API</span>`;
+            }
+
+            row.innerHTML = `
+                <td>
+                    <span class="status-badge status-success">
+                        <span class="dot"></span> Terdaftar
+                    </span>
+                </td>
+                <td>
+                    <div class="model-name">${model.name}</div>
+                    <small style="color:#9ca3af">${model.type || type}</small>
+                </td>
+                <td>${detailsHtml}</td>
+                <td>
+                    <span class="${getPingClass(ping)}">${ping}ms</span>
+                </td>
+                <td>
+                    ${testButtonHtml}
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    async function refreshAllData() {
+        const btn = document.getElementById('refreshBtn');
+        const lastUpdatedEl = document.getElementById('lastUpdated');
+        const originalText = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = '⏳ Memuat...';
+
+        await Promise.all([
+            fetchAndRender('text', 'https://gen.pollinations.ai/text/models', 'text-body'),
+            fetchAndRender('image', 'https://gen.pollinations.ai/image/models', 'image-body')
+        ]);
+
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        
+        const now = new Date();
+        lastUpdatedEl.textContent = `Update: ${now.toLocaleTimeString()}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        refreshAllData();
+    });
+</script>
+
+</body>
+</html>
